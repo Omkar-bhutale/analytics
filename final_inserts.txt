@@ -1,0 +1,357 @@
+-- ===================================================================
+-- SCRIPT TO POPULATE THE CBL DATABASE WITH DUMMY DATA
+-- PostgreSQL Version - Public Schema
+-- ===================================================================
+
+-- ===================================================================
+-- PHASE 1: CORE ENTITIES (Users, Roles, Batches, Courses, Topics)
+-- ===================================================================
+
+-- Clear existing data to avoid conflicts (optional)
+-- TRUNCATE TABLE user_problem_engagement, user_topic_engagement, algorithm_submissions, 
+-- pseudocode_submissions, mcq_attempts, problem_submissions, user_problem_reports, 
+-- mcqs, problem_test_cases, problems, course_topic_info, batch_course_assignments, 
+-- user_batch_assignments, user_roles, topics, courses, batches, users, roles RESTART IDENTITY;
+
+-- Insert Roles (ADMIN, SME, TRAINEE) - Has unique constraint on role_name
+INSERT INTO roles (role_name) VALUES
+('ADMIN'),
+('SME'),
+('TRAINEE')
+ON CONFLICT (role_name) DO NOTHING;
+
+-- Insert Users - Has unique constraints on user_id and email
+INSERT INTO users (user_id, name, email, created_at, insights) VALUES
+('auth0|admin01', 'Admin User', 'admin@example.com', NOW(), '{"bestLanguage": "Java", "weakAreas": [], "strongAreas": ["System Design", "Architecture"], "performance": "EXCELLENT", "recommendations": []}'::jsonb),
+('auth0|sme01', 'Dr. Ada Lovelace', 'ada.lovelace@example.com', NOW(), '{"bestLanguage": "Java", "weakAreas": [], "strongAreas": ["Algorithms", "Data Structures", "OOP"], "performance": "EXCELLENT", "recommendations": []}'::jsonb),
+('auth0|sme02', 'Prof. Grace Hopper', 'grace.hopper@example.com', NOW(), '{"bestLanguage": "JavaScript", "weakAreas": [], "strongAreas": ["Web Development", "TypeScript", "System Design"], "performance": "EXCELLENT", "recommendations": []}'::jsonb),
+('auth0|trainee01', 'Alice Johnson', 'alice.j@example.com', NOW(), '{"bestLanguage": "Java", "weakAreas": ["Recursion", "Complex Algorithms"], "strongAreas": ["Basic Syntax", "Control Flow"], "performance": "GOOD", "recommendations": ["Practice recursive problems", "Work on algorithm optimization"]}'::jsonb),
+('auth0|trainee02', 'Bob Williams', 'bob.w@example.com', NOW(), '{"bestLanguage": "Python", "weakAreas": ["List Comprehensions", "Error Handling"], "strongAreas": ["Basic Functions", "Data Types"], "performance": "AVERAGE", "recommendations": ["Study list comprehensions", "Practice exception handling"]}'::jsonb),
+('auth0|trainee03', 'Charlie Brown', 'charlie.b@example.com', NOW(), '{"bestLanguage": "Java", "weakAreas": ["Memory Management", "Multi-threading"], "strongAreas": ["OOP Concepts", "Problem Solving"], "performance": "GOOD", "recommendations": ["Learn about garbage collection", "Study concurrency"]}'::jsonb),
+('auth0|trainee04', 'Diana Prince', 'diana.p@example.com', NOW(), '{"bestLanguage": "JavaScript", "weakAreas": ["Async Programming", "Closures"], "strongAreas": ["DOM Manipulation", "Basic Syntax"], "performance": "AVERAGE", "recommendations": ["Practice promises and async/await", "Study scope and closures"]}'::jsonb),
+('auth0|trainee05', 'Ethan Hunt', 'ethan.h@example.com', NOW(), '{"bestLanguage": "Python", "weakAreas": ["Decorators", "Generators"], "strongAreas": ["Data Analysis", "Basic Scripting"], "performance": "BELOW_AVERAGE", "recommendations": ["Learn advanced Python features", "Practice with real datasets"]}'::jsonb),
+('auth0|trainee06', 'Fiona Glenanne', 'fiona.g@example.com', NOW(), '{"bestLanguage": "TypeScript", "weakAreas": ["Generic Types", "Advanced Types"], "strongAreas": ["Basic Types", "Interfaces"], "performance": "GOOD", "recommendations": ["Study generics", "Learn advanced type patterns"]}'::jsonb),
+('auth0|trainee07', 'George Costanza', 'george.c@example.com', NOW(), '{"bestLanguage": "TypeScript", "weakAreas": ["Type Inference", "Utility Types"], "strongAreas": ["Interface Design", "Basic Typing"], "performance": "EXCELLENT", "recommendations": ["Master utility types", "Practice complex type scenarios"]}'::jsonb),
+('auth0|trainee08', 'Hannah Abbott', 'hannah.a@example.com', NOW(), '{"bestLanguage": "Java", "weakAreas": ["Stream API", "Lambda Expressions"], "strongAreas": ["Basic Syntax", "Collections"], "performance": "AVERAGE", "recommendations": ["Learn Java 8 features", "Practice functional programming"]}'::jsonb),
+('auth0|trainee09', 'Ian Malcolm', 'ian.m@example.com', NOW(), '{"bestLanguage": "Python", "weakAreas": ["Testing", "Documentation"], "strongAreas": ["Data Structures", "Algorithms"], "performance": "GOOD", "recommendations": ["Learn unittest framework", "Practice docstring writing"]}'::jsonb),
+('auth0|trainee10', 'Jane Smith', 'jane.s@example.com', NOW(), '{"bestLanguage": "JavaScript", "weakAreas": ["Event Loop", "Prototypal Inheritance"], "strongAreas": ["ES6 Features", "Array Methods"], "performance": "AVERAGE", "recommendations": ["Study JavaScript runtime", "Learn prototype chain"]}'::jsonb),
+('auth0|trainee11', 'Kevin McCallister', 'kevin.m@example.com', NOW(), '{"bestLanguage": "TypeScript", "weakAreas": ["Configuration", "Module System"], "strongAreas": ["Type Safety", "Object Oriented Design"], "performance": "GOOD", "recommendations": ["Learn tsconfig options", "Study module resolution"]}'::jsonb),
+('auth0|trainee12', 'Laura Palmer', 'laura.p@example.com', NOW(), '{"bestLanguage": "Java", "weakAreas": ["Design Patterns", "Performance Optimization"], "strongAreas": ["Recursion", "Problem Solving"], "performance": "EXCELLENT", "recommendations": ["Study common design patterns", "Learn JVM optimization"]}'::jsonb)
+ON CONFLICT (user_id) DO NOTHING;
+
+-- Insert Batches - No unique constraint on batch_name, so we'll check existence first
+INSERT INTO batches (batch_name, start_date, end_date)
+SELECT * FROM (VALUES 
+    ('Fall 2025 Full-Stack Cohort', '2025-09-01'::timestamp, '2026-03-01'::timestamp),
+    ('Spring 2026 Data Science Bootcamp', '2026-04-01'::timestamp, '2026-09-01'::timestamp),
+    ('Fall 2025 Part-Time Web Dev', '2025-09-15'::timestamp, '2026-05-15'::timestamp)
+) AS data(batch_name, start_date, end_date)
+WHERE NOT EXISTS (SELECT 1 FROM batches WHERE batches.batch_name = data.batch_name);
+
+-- Insert Courses - No unique constraint on title, so we'll check existence first
+INSERT INTO courses (title, description, creator_id, created_at)
+SELECT * FROM (VALUES 
+    ('Core Java Programming', 'Master the fundamentals of Java, from basic syntax to advanced Object-Oriented Programming.', 'auth0|sme01', NOW()),
+    ('Python for Beginners', 'An introduction to Python, covering data types, control flow, functions, and OOP.', 'auth0|sme01', NOW()),
+    ('Modern JavaScript', 'Learn the essentials of JavaScript, including ES6+ features and the basics of OOP.', 'auth0|sme02', NOW()),
+    ('TypeScript Fundamentals', 'A comprehensive guide to TypeScript, focusing on types, classes, and interfaces.', 'auth0|sme02', NOW())
+) AS data(title, description, creator_id, created_at)
+WHERE NOT EXISTS (SELECT 1 FROM courses WHERE courses.title = data.title);
+
+-- Insert Topics - No unique constraint on title, so we'll check existence first
+INSERT INTO topics (title, content, creator_id, created_at)
+SELECT * FROM (VALUES 
+    -- Java Topics
+    ('Java: Variables and Data Types', '{"mainTitle": "Understanding Variables in Java", "languageSections": {"Java": {"contentBlocks": [{"type": "text", "content": "In Java, variables are strongly typed and must be declared before use."}, {"type": "code", "content": "int age = 25;\nString name = \"John\";\ndouble salary = 50000.0;"}, {"type": "text", "content": "Primitive types include int, double, boolean, char, etc."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Java: Control Flow Statements', '{"mainTitle": "Conditional Statements and Loops in Java", "languageSections": {"Java": {"contentBlocks": [{"type": "text", "content": "Control flow statements allow you to control the execution flow of your program."}, {"type": "code", "content": "if (score >= 90) {\n    grade = \"A\";\n} else if (score >= 80) {\n    grade = \"B\";\n} else {\n    grade = \"C\";\n}"}, {"type": "text", "content": "Java supports if-else, switch, for, while, and do-while loops."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Java: Methods and Functions', '{"mainTitle": "Creating and Using Methods in Java", "languageSections": {"Java": {"contentBlocks": [{"type": "text", "content": "Methods in Java are blocks of code that perform specific tasks and can be reused."}, {"type": "code", "content": "public static int addNumbers(int a, int b) {\n    return a + b;\n}"}, {"type": "text", "content": "Methods can have access modifiers, return types, parameters, and exceptions."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Java: Introduction to OOP', '{"mainTitle": "Classes, Objects, and Encapsulation in Java", "languageSections": {"Java": {"contentBlocks": [{"type": "text", "content": "Object-Oriented Programming organizes software design around objects and classes."}, {"type": "code", "content": "public class Car {\n    private String model;\n    public Car(String model) {\n        this.model = model;\n    }\n}"}, {"type": "text", "content": "OOP principles include encapsulation, inheritance, polymorphism, and abstraction."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Java: Arrays and Collections', '{"mainTitle": "Working with Arrays and Collections in Java", "languageSections": {"Java": {"contentBlocks": [{"type": "text", "content": "Arrays store multiple values of the same type while Collections provide more flexibility."}, {"type": "code", "content": "int[] numbers = {1, 2, 3};\nList<String> names = new ArrayList<>();"}, {"type": "text", "content": "Common collections include ArrayList, HashMap, HashSet, and LinkedList."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    
+    -- Python Topics
+    ('Python: Variables and Data Types', '{"mainTitle": "Understanding Variables in Python", "languageSections": {"Python": {"contentBlocks": [{"type": "text", "content": "Python uses dynamic typing - variables can hold values of any type."}, {"type": "code", "content": "name = \"Alice\"\nage = 30\nis_student = True"}, {"type": "text", "content": "Common data types include str, int, float, bool, list, dict, tuple."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Python: Control Flow', '{"mainTitle": "Conditional Logic and Loops in Python", "languageSections": {"Python": {"contentBlocks": [{"type": "text", "content": "Python uses indentation to define code blocks for control structures."}, {"type": "code", "content": "if age >= 18:\n    print(\"Adult\")\nelse:\n    print(\"Minor\")"}, {"type": "text", "content": "Python supports if-elif-else, for loops, while loops, and comprehensions."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Python: Functions and Modules', '{"mainTitle": "Defining and Using Functions in Python", "languageSections": {"Python": {"contentBlocks": [{"type": "text", "content": "Functions in Python are defined using the def keyword and can return multiple values."}, {"type": "code", "content": "def greet(name):\n    return f\"Hello, {name}\""}, {"type": "text", "content": "Python supports default parameters, variable-length arguments, and lambda functions."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Python: OOP Concepts', '{"mainTitle": "Classes and Objects in Python", "languageSections": {"Python": {"contentBlocks": [{"type": "text", "content": "Python supports object-oriented programming with classes, inheritance, and polymorphism."}, {"type": "code", "content": "class Dog:\n    def __init__(self, name):\n        self.name = name\n    def bark(self):\n        return \"Woof!\""}, {"type": "text", "content": "Python uses special methods like __init__ for constructors and self for instance reference."}]}}}'::jsonb, 'auth0|sme01', NOW()),
+    ('Python: Lists and Dictionaries', '{"mainTitle": "Working with Lists and Dictionaries in Python", "languageSections": {"Python": {"contentBlocks": [{"type": "text", "content": "Lists are ordered collections while dictionaries store key-value pairs."}, {"type": "code", "content": "fruits = [\"apple\", \"banana\", \"cherry\"]\nperson = {\"name\": \"John\", \"age\": 30}"}, {"type": "text", "content": "Both lists and dictionaries are mutable and support various built-in methods."}]}}}'::jsonb, 'auth0|sme01', NOW())
+) AS data(title, content, creator_id, created_at)
+WHERE NOT EXISTS (SELECT 1 FROM topics WHERE topics.title = data.title);
+
+-- ===================================================================
+-- PHASE 2: LINKING TABLES (Assignments and Info)
+-- ===================================================================
+
+-- Assign Roles to Users - Has composite primary key
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.user_id, r.role_id FROM 
+(VALUES 
+    ('auth0|admin01', 'ADMIN'),
+    ('auth0|sme01', 'SME'),
+    ('auth0|sme02', 'SME'),
+    ('auth0|trainee01', 'TRAINEE'),
+    ('auth0|trainee02', 'TRAINEE'),
+    ('auth0|trainee03', 'TRAINEE'),
+    ('auth0|trainee04', 'TRAINEE'),
+    ('auth0|trainee05', 'TRAINEE'),
+    ('auth0|trainee06', 'TRAINEE'),
+    ('auth0|trainee07', 'TRAINEE'),
+    ('auth0|trainee08', 'TRAINEE'),
+    ('auth0|trainee09', 'TRAINEE'),
+    ('auth0|trainee10', 'TRAINEE'),
+    ('auth0|trainee11', 'TRAINEE'),
+    ('auth0|trainee12', 'TRAINEE')
+) AS user_roles_data(user_id, role_name)
+JOIN users u ON u.user_id = user_roles_data.user_id
+JOIN roles r ON r.role_name = user_roles_data.role_name
+ON CONFLICT (role_id, user_id) DO NOTHING;
+
+-- Assign Users to Batches - Has composite primary key
+INSERT INTO user_batch_assignments (user_id, batch_id)
+SELECT u.user_id, b.batch_id FROM 
+(VALUES 
+    ('auth0|trainee01', 'Fall 2025 Full-Stack Cohort'),
+    ('auth0|trainee02', 'Fall 2025 Full-Stack Cohort'),
+    ('auth0|trainee03', 'Fall 2025 Full-Stack Cohort'),
+    ('auth0|trainee04', 'Fall 2025 Full-Stack Cohort'),
+    ('auth0|trainee05', 'Spring 2026 Data Science Bootcamp'),
+    ('auth0|trainee06', 'Spring 2026 Data Science Bootcamp'),
+    ('auth0|trainee07', 'Spring 2026 Data Science Bootcamp'),
+    ('auth0|trainee08', 'Spring 2026 Data Science Bootcamp'),
+    ('auth0|trainee09', 'Fall 2025 Part-Time Web Dev'),
+    ('auth0|trainee10', 'Fall 2025 Part-Time Web Dev'),
+    ('auth0|trainee11', 'Fall 2025 Part-Time Web Dev'),
+    ('auth0|trainee12', 'Fall 2025 Part-Time Web Dev')
+) AS batch_data(user_id, batch_name)
+JOIN users u ON u.user_id = batch_data.user_id
+JOIN batches b ON b.batch_name = batch_data.batch_name
+ON CONFLICT (user_id, batch_id) DO NOTHING;
+
+-- Assign Courses to Batches - Has composite primary key
+INSERT INTO batch_course_assignments (batch_id, course_id)
+SELECT b.batch_id, c.course_id FROM 
+(VALUES 
+    ('Fall 2025 Full-Stack Cohort', 'Core Java Programming'),
+    ('Fall 2025 Full-Stack Cohort', 'Python for Beginners'),
+    ('Fall 2025 Full-Stack Cohort', 'Modern JavaScript'),
+    ('Spring 2026 Data Science Bootcamp', 'Python for Beginners'),
+    ('Spring 2026 Data Science Bootcamp', 'Modern JavaScript'),
+    ('Spring 2026 Data Science Bootcamp', 'TypeScript Fundamentals'),
+    ('Fall 2025 Part-Time Web Dev', 'Modern JavaScript'),
+    ('Fall 2025 Part-Time Web Dev', 'TypeScript Fundamentals')
+) AS course_data(batch_name, course_title)
+JOIN batches b ON b.batch_name = course_data.batch_name
+JOIN courses c ON c.title = course_data.course_title
+ON CONFLICT (batch_id, course_id) DO NOTHING;
+
+-- Link Topics to Courses - Has composite primary key
+INSERT INTO course_topic_info (course_id, topic_id, index_value, topic_status)
+SELECT c.course_id, t.topic_id, 
+       CASE 
+           WHEN t.title LIKE 'Java:%' THEN 
+               CASE 
+                   WHEN t.title LIKE '%Variables%' THEN 1
+                   WHEN t.title LIKE '%Control Flow%' THEN 2
+                   WHEN t.title LIKE '%Methods%' THEN 3
+                   WHEN t.title LIKE '%OOP%' THEN 4
+                   WHEN t.title LIKE '%Arrays%' THEN 5
+                   ELSE 1
+               END
+           WHEN t.title LIKE 'Python:%' THEN 
+               CASE 
+                   WHEN t.title LIKE '%Variables%' THEN 1
+                   WHEN t.title LIKE '%Control Flow%' THEN 2
+                   WHEN t.title LIKE '%Functions%' THEN 3
+                   WHEN t.title LIKE '%OOP%' THEN 4
+                   WHEN t.title LIKE '%Lists%' THEN 5
+                   ELSE 1
+               END
+           ELSE 1
+       END as index_value,
+       true as topic_status
+FROM 
+(VALUES 
+    ('Core Java Programming', 'Java: Variables and Data Types'),
+    ('Core Java Programming', 'Java: Control Flow Statements'),
+    ('Core Java Programming', 'Java: Methods and Functions'),
+    ('Core Java Programming', 'Java: Introduction to OOP'),
+    ('Core Java Programming', 'Java: Arrays and Collections'),
+    ('Python for Beginners', 'Python: Variables and Data Types'),
+    ('Python for Beginners', 'Python: Control Flow'),
+    ('Python for Beginners', 'Python: Functions and Modules'),
+    ('Python for Beginners', 'Python: OOP Concepts'),
+    ('Python for Beginners', 'Python: Lists and Dictionaries')
+) AS topic_data(course_title, topic_title)
+JOIN courses c ON c.title = topic_data.course_title
+JOIN topics t ON t.title = topic_data.topic_title
+ON CONFLICT (course_id, topic_id) DO NOTHING;
+
+-- ===================================================================
+-- PHASE 3: CONTENT-SPECIFIC DATA (Problems, Test Cases, MCQs)
+-- ===================================================================
+
+-- Insert Problems - No unique constraint, so we'll insert directly
+INSERT INTO problems (title, description, difficulty, topic_id)
+SELECT 
+    p_data.title,
+    p_data.description,
+    p_data.difficulty::difficulty_level,
+    t.topic_id
+FROM (VALUES 
+    -- Java Problems
+    ('Hello World', 'Write a program that prints "Hello, World!" to the console.', 'EASY', 'Java: Variables and Data Types'),
+    ('Simple Calculator', 'Write a function that takes two numbers and an operator (+, -, *, /) and returns the result.', 'EASY', 'Java: Methods and Functions'),
+    ('FizzBuzz', 'Write a program that prints numbers from 1 to 100. For multiples of 3, print "Fizz". For multiples of 5, print "Buzz". For multiples of both, print "FizzBuzz".', 'EASY', 'Java: Control Flow Statements'),
+    ('Factorial Function', 'Write a recursive function to calculate the factorial of a number.', 'MEDIUM', 'Java: Methods and Functions'),
+    ('Create a Student Class', 'Create a class named Student with name, age, and grade attributes, and a method to display student info.', 'EASY', 'Java: Introduction to OOP'),
+    
+    -- Python Problems
+    ('Python List Sum', 'Write a function that returns the sum of all numbers in a list.', 'EASY', 'Python: Lists and Dictionaries'),
+    ('Check for Even or Odd', 'Write a function that takes an integer and returns "Even" or "Odd".', 'EASY', 'Python: Control Flow'),
+    ('Python For Loop', 'Iterate through a list of names and print each one.', 'EASY', 'Python: Control Flow'),
+    ('Greeting Function', 'Write a function that takes a name as an argument and returns a greeting string.', 'EASY', 'Python: Functions and Modules'),
+    ('Create a Cat Class', 'Create a simple class named Cat with a name attribute and a meow() method.', 'EASY', 'Python: OOP Concepts')
+) AS p_data(title, description, difficulty, topic_name)
+JOIN topics t ON t.title = p_data.topic_name;
+
+-- Insert Test Cases - No unique constraint
+INSERT INTO problem_test_cases (problem_id, input, expected_output, is_public)
+SELECT 
+    p.problem_id,
+    tc_data.input,
+    tc_data.expected_output,
+    tc_data.is_public
+FROM (VALUES 
+    ('Hello World', '', 'Hello, World!', true),
+    ('Simple Calculator', '5, 3, "+"', '8', true),
+    ('Simple Calculator', '10, 2, "/"', '5', false),
+    ('FizzBuzz', '', '1, 2, Fizz, 4, Buzz,...', true),
+    ('Factorial Function', '5', '120', true),
+    ('Python List Sum', '[1, 2, 3, 4]', '10', true),
+    ('Check for Even or Odd', '4', 'Even', true),
+    ('Check for Even or Odd', '7', 'Odd', false)
+) AS tc_data(problem_title, input, expected_output, is_public)
+JOIN problems p ON p.title = tc_data.problem_title;
+
+-- Insert MCQs - No unique constraint
+INSERT INTO mcqs (question, options, topic_id)
+SELECT 
+    mcq_data.question,
+    mcq_data.options::jsonb,
+    t.topic_id
+FROM (VALUES 
+    ('Which keyword is used to declare a constant variable in Java?', '{"optionList": ["var", "let", "const", "final"], "correctOptionIndex": 3}', 'Java: Variables and Data Types'),
+    ('What is the result of 5 % 2 in Java?', '{"optionList": ["2.5", "2", "1", "0"], "correctOptionIndex": 2}', 'Java: Methods and Functions'),
+    ('Which loop is guaranteed to execute at least once?', '{"optionList": ["for", "while", "do-while", "if"], "correctOptionIndex": 2}', 'Java: Control Flow Statements'),
+    ('Which data type is used to store a sequence of characters in Python?', '{"optionList": ["char", "string", "str", "text"], "correctOptionIndex": 2}', 'Python: Variables and Data Types'),
+    ('What does the `//` operator do in Python?', '{"optionList": ["Comment", "Floor Division", "Exponent", "Modulo"], "correctOptionIndex": 1}', 'Python: Control Flow')
+) AS mcq_data(question, options, topic_name)
+JOIN topics t ON t.title = mcq_data.topic_name;
+
+-- ===================================================================
+-- PHASE 4: USER ACTIVITY & ANALYTICS DATA
+-- ===================================================================
+
+-- Insert User Problem Reports - Has unique constraint on (user_id, problem_id)
+INSERT INTO user_problem_reports (user_id, problem_id, is_solved, total_attempts, languages_used, insights)
+SELECT 
+    u.user_id,
+    p.problem_id,
+    upr_data.is_solved,
+    upr_data.total_attempts,
+    upr_data.languages_used::jsonb,
+    upr_data.insights::jsonb
+FROM (VALUES 
+    ('auth0|trainee01', 'Hello World', true, 2, '["Java"]', '{"bestLanguage": "Java", "weakAreas": ["Syntax"], "strongAreas": ["Basic Output"], "performance": "GOOD", "recommendations": ["Practice more syntax variations"]}'),
+    ('auth0|trainee01', 'Simple Calculator', true, 1, '["Java"]', '{"bestLanguage": "Java", "weakAreas": [], "strongAreas": ["Operators", "Functions"], "performance": "EXCELLENT", "recommendations": []}'),
+    ('auth0|trainee02', 'Python List Sum', false, 5, '["Python"]', '{"bestLanguage": "Python", "weakAreas": ["List Operations", "Loops"], "strongAreas": ["Basic Syntax"], "performance": "BELOW_AVERAGE", "recommendations": ["Study list methods", "Practice loop patterns"]}'),
+    ('auth0|trainee02', 'Check for Even or Odd', true, 2, '["Python"]', '{"bestLanguage": "Python", "weakAreas": ["Conditionals"], "strongAreas": ["Basic Functions"], "performance": "AVERAGE", "recommendations": ["Practice conditional logic"]}'),
+    ('auth0|trainee03', 'FizzBuzz', true, 1, '["Java"]', '{"bestLanguage": "Java", "weakAreas": [], "strongAreas": ["Control Flow", "Logic"], "performance": "EXCELLENT", "recommendations": []}')
+) AS upr_data(user_id, problem_title, is_solved, total_attempts, languages_used, insights)
+JOIN users u ON u.user_id = upr_data.user_id
+JOIN problems p ON p.title = upr_data.problem_title
+ON CONFLICT (user_id, problem_id) DO NOTHING;
+
+-- Insert Problem Submissions - No unique constraint
+INSERT INTO problem_submissions (user_id, problem_id, user_problem_report_id, language, code, status, submitted_at)
+SELECT 
+    u.user_id,
+    p.problem_id,
+    upr.user_problem_report_id,
+    ps_data.language,
+    ps_data.code,
+    ps_data.status,
+    ps_data.submitted_at
+FROM (VALUES 
+    ('auth0|trainee01', 'Hello World', 'Java', 'System.out.println("Hello");', 'Failed', NOW() - INTERVAL '3 days'),
+    ('auth0|trainee01', 'Hello World', 'Java', 'System.out.println("Hello, World!");', 'Passed', NOW() - INTERVAL '2 days'),
+    ('auth0|trainee02', 'Python List Sum', 'Python', 'sum = 0', 'Failed', NOW() - INTERVAL '5 days'),
+    ('auth0|trainee03', 'FizzBuzz', 'Java', '// Correct FizzBuzz code', 'Passed', NOW() - INTERVAL '1 day')
+) AS ps_data(user_id, problem_title, language, code, status, submitted_at)
+JOIN users u ON u.user_id = ps_data.user_id
+JOIN problems p ON p.title = ps_data.problem_title
+JOIN user_problem_reports upr ON upr.user_id = u.user_id AND upr.problem_id = p.problem_id;
+
+-- Insert MCQ Attempts - No unique constraint
+INSERT INTO mcq_attempts (user_id, mcq_id, selected_option, is_correct, attempted_at)
+SELECT 
+    u.user_id,
+    m.mcq_id,
+    ma_data.selected_option,
+    ma_data.is_correct,
+    ma_data.attempted_at
+FROM (VALUES 
+    ('auth0|trainee01', 'Which keyword is used to declare a constant variable in Java?', 'final', true, NOW() - INTERVAL '2 days'),
+    ('auth0|trainee01', 'What is the result of 5 % 2 in Java?', '1', true, NOW() - INTERVAL '1 day'),
+    ('auth0|trainee02', 'Which data type is used to store a sequence of characters in Python?', 'str', true, NOW()),
+    ('auth0|trainee02', 'What does the `//` operator do in Python?', 'Floor Division', true, NOW() - INTERVAL '2 days')
+) AS ma_data(user_id, question, selected_option, is_correct, attempted_at)
+JOIN users u ON u.user_id = ma_data.user_id
+JOIN mcqs m ON m.question = ma_data.question;
+
+-- Insert User Topic Engagement - Has composite primary key
+INSERT INTO user_topic_engagement (user_id, topic_id, total_seconds_spent, last_activity_at, is_completed)
+SELECT 
+    u.user_id,
+    t.topic_id,
+    ute_data.total_seconds_spent,
+    ute_data.last_activity_at,
+    ute_data.is_completed
+FROM (VALUES 
+    ('auth0|trainee01', 'Java: Variables and Data Types', 7250, NOW() - INTERVAL '1 day', true),
+    ('auth0|trainee01', 'Java: Control Flow Statements', 930, NOW() - INTERVAL '2 hours', false),
+    ('auth0|trainee02', 'Python: Variables and Data Types', 3600, NOW() - INTERVAL '3 days', false),
+    ('auth0|trainee03', 'Java: Methods and Functions', 350, NOW() - INTERVAL '5 minutes', false)
+) AS ute_data(user_id, topic_title, total_seconds_spent, last_activity_at, is_completed)
+JOIN users u ON u.user_id = ute_data.user_id
+JOIN topics t ON t.title = ute_data.topic_title
+ON CONFLICT (user_id, topic_id) DO NOTHING;
+
+-- Insert User Problem Engagement - Has composite primary key
+INSERT INTO user_problem_engagement (user_id, problem_id, total_seconds_spent, total_attempts, last_activity_at)
+SELECT 
+    u.user_id,
+    p.problem_id,
+    upe_data.total_seconds_spent,
+    upe_data.total_attempts,
+    upe_data.last_activity_at
+FROM (VALUES 
+    ('auth0|trainee01', 'Hello World', 5500, 2, NOW() - INTERVAL '1 day'),
+    ('auth0|trainee01', 'Simple Calculator', 1200, 1, NOW() - INTERVAL '5 hours'),
+    ('auth0|trainee02', 'Python List Sum', 9800, 5, NOW()),
+    ('auth0|trainee02', 'Check for Even or Odd', 600, 2, NOW() - INTERVAL '1 week')
+) AS upe_data(user_id, problem_title, total_seconds_spent, total_attempts, last_activity_at)
+JOIN users u ON u.user_id = upe_data.user_id
+JOIN problems p ON p.title = upe_data.problem_title
+ON CONFLICT (user_id, problem_id) DO NOTHING;
+
+-- ===================================================================
+-- COMPLETION MESSAGE
+-- ===================================================================
+
+DO $$ 
+BEGIN
+    RAISE NOTICE 'Database population completed successfully!';
+    RAISE NOTICE 'Users inserted: %', (SELECT COUNT(*) FROM users);
+    RAISE NOTICE 'Topics inserted: %', (SELECT COUNT(*) FROM topics);
+    RAISE NOTICE 'Problems inserted: %', (SELECT COUNT(*) FROM problems);
+END $$;
