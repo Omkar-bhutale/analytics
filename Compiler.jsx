@@ -354,7 +354,6 @@ const Compiler = ({ onLogout }) => {
                 setPythonTime(data.pythonTimeSeconds || 0);
                 setJavascriptTime(data.javascriptTimeSeconds || 0);
                 setTypescriptTime(data.typescriptTimeSeconds || 0);
-                setCurrentTime(data.javaTimeSeconds || 0);
 
                 // 🔧 FIX: Initialize lastSaved times to prevent duplication on first auto-save
                 setLastSavedJavaTime(data.javaTimeSeconds || 0);
@@ -363,30 +362,36 @@ const Compiler = ({ onLogout }) => {
                 setLastSavedTypescriptTime(data.typescriptTimeSeconds || 0);
 
                 // Fetch algorithm
+                let fetchedAlgorithmTime = 0;
+                let fetchedAlgorithmValidated = false;
                 try {
                     const algoResponse = await axios.get(
                         `${import.meta.env.VITE_API_BASE_URL}/user/algorithm-submissions/problem/${questionId}`
                     );
                     if (algoResponse.data.content) {
                         setAlgorithm(algoResponse.data.content);
-                        setAlgorithmTime(algoResponse.data.totalSecondSpent || 0);
+                        fetchedAlgorithmTime = algoResponse.data.totalSecondSpent || 0;
+                        setAlgorithmTime(fetchedAlgorithmTime);
                         // 🔧 FIX: Initialize lastSaved algorithm time
-                        setLastSavedAlgorithmTime(algoResponse.data.totalSecondSpent || 0);
+                        setLastSavedAlgorithmTime(fetchedAlgorithmTime);
                     }
                 } catch (err) {
                     console.log("No algorithm found, using default");
                 }
 
                 // Fetch pseudocode
+                let fetchedPseudocodeTime = 0;
+                let fetchedPseudoValidated = false;
                 try {
                     const pseudoResponse = await axios.get(
                         `${import.meta.env.VITE_API_BASE_URL}/user/pseudocode-submissions/problem/${questionId}`
                     );
                     if (pseudoResponse.data.content) {
                         setPseudoCode(pseudoResponse.data.content);
-                        setPseudocodeTime(pseudoResponse.data.totalSecondSpent || 0);
+                        fetchedPseudocodeTime = pseudoResponse.data.totalSecondSpent || 0;
+                        setPseudocodeTime(fetchedPseudocodeTime);
                         // 🔧 FIX: Initialize lastSaved pseudocode time
-                        setLastSavedPseudocodeTime(pseudoResponse.data.totalSecondSpent || 0);
+                        setLastSavedPseudocodeTime(fetchedPseudocodeTime);
                     }
                 } catch (err) {
                     console.log("No pseudocode found, using default");
@@ -397,7 +402,8 @@ const Compiler = ({ onLogout }) => {
                     const algoValidResponse = await axios.get(
                         `${import.meta.env.VITE_API_BASE_URL}/user/algorithm-submissions/problem/${questionId}/is-correct`
                     );
-                    setAlgorithmValidated(algoValidResponse.data);
+                    fetchedAlgorithmValidated = algoValidResponse.data;
+                    setAlgorithmValidated(fetchedAlgorithmValidated);
                 } catch (err) {
                     setAlgorithmValidated(false);
                 }
@@ -406,7 +412,8 @@ const Compiler = ({ onLogout }) => {
                     const pseudoValidResponse = await axios.get(
                         `${import.meta.env.VITE_API_BASE_URL}/user/pseudocode-submissions/problem/${questionId}/is-correct`
                     );
-                    setPseudoValidated(pseudoValidResponse.data);
+                    fetchedPseudoValidated = pseudoValidResponse.data;
+                    setPseudoValidated(fetchedPseudoValidated);
                 } catch (err) {
                     setPseudoValidated(false);
                 }
@@ -429,8 +436,19 @@ const Compiler = ({ onLogout }) => {
                 }
 
                 // Determine current editor
-                const editor = algorithmValidated ? (pseudoValidated ? 'code' : 'pseudocode') : 'algorithm';
+                const editor = fetchedAlgorithmValidated ? (fetchedPseudoValidated ? 'code' : 'pseudocode') : 'algorithm';
                 setCurrentEditor(editor);
+
+                // 🔧 FIX: Set currentTime based on the active editor after determining it
+                let initialTime = 0;
+                if (editor === 'algorithm') {
+                    initialTime = fetchedAlgorithmTime;
+                } else if (editor === 'pseudocode') {
+                    initialTime = fetchedPseudocodeTime;
+                } else if (editor === 'code') {
+                    initialTime = data.javaTimeSeconds || 0; // Default to Java time for code editor
+                }
+                setCurrentTime(initialTime);
 
                 setDataLoaded(true);
                 console.log("✅ All data loaded from database");
